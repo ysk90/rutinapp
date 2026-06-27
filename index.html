@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rutina de Actividades</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:       #4caf50;
+      --green-light: #e8f5e9;
+      --green-bg:    #f1f8f1;
+      --blue-light:  #e3f2fd;
+      --text:        #1a1a1a;
+      --text-muted:  #757575;
+      --white:       #ffffff;
+      --radius:      20px;
+      --shadow:      0 4px 20px rgba(0,0,0,0.07);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--green-bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* ─── SETUP ───────────────────────────────────── */
+    #setup {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    .setup-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .setup-header h1 {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+
+    .setup-header p {
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+    }
+
+    #activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .activity-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--white);
+      border-radius: 14px;
+      padding: 0.65rem 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .handle {
+      color: #d0d0d0;
+      font-size: 1.1rem;
+      cursor: grab;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .activity-row input.name {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      background: transparent;
+      color: var(--text);
+      min-width: 0;
+    }
+
+    .activity-row input.name::placeholder { color: #c0c0c0; }
+
+    .dur-wrap {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: #f4f4f4;
+      border-radius: 8px;
+      padding: 4px 8px;
+      flex-shrink: 0;
+    }
+
+    .dur-wrap input {
+      width: 36px;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 1rem;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .dur-wrap span {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .btn-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #ccc;
+      font-size: 1rem;
+      padding: 2px 5px;
+      border-radius: 6px;
+      transition: color .15s;
+      flex-shrink: 0;
+    }
+    .btn-remove:hover { color: #e57373; }
+
+    /* drag-and-drop states for activity rows */
+    .activity-row.dragging  { opacity: .35; }
+    .activity-row.drag-over {
+      border: 2px dashed var(--green);
+      background: var(--green-light);
+    }
+
+    #btn-add {
+      width: 100%;
+      padding: 0.7rem;
+      margin-bottom: 1.25rem;
+      background: var(--white);
+      border: 2px dashed #d0d0d0;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    #btn-add:hover { border-color: var(--green); color: var(--green); }
+
+    #btn-start {
+      width: 100%;
+      padding: 1rem;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(76,175,80,.35);
+      transition: background .15s, transform .1s;
+    }
+    #btn-start:hover  { background: #43a047; transform: translateY(-1px); }
+    #btn-start:active { transform: none; }
+
+    /* ─── DAYS / SAVE ─────────────────────────────── */
+    .days-section {
+      margin-top: 1.25rem;
+      background: var(--white);
+      border-radius: 14px;
+      padding: .9rem 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .days-header {
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: .6rem;
+    }
+
+    .days-row {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      flex-wrap: wrap;
+    }
+
+    .days-btns { display: flex; gap: .4rem; flex-wrap: wrap; flex: 1; }
+
+    .day-btn {
+      padding: .35rem .65rem;
+      border-radius: 8px;
+      border: 1.5px solid #e0e0e0;
+      background: #fafafa;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all .15s;
+    }
+    .day-btn.has-data  { border-color: #a5d6a7; color: #2e7d32; background: var(--green-light); }
+    .day-btn.selected  { border-color: var(--green); background: var(--green); color: #fff; }
+
+    .btn-save-day {
+      padding: .38rem .85rem;
+      border-radius: 8px;
+      background: #e3f2fd;
+      border: 1.5px solid #90caf9;
+      color: #1565c0;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+    .btn-save-day:hover { background: #bbdefb; }
+
+    /* ─── MAIN ────────────────────────────────────── */
+    #main {
+      display: none;
+      min-height: 100vh;
+      padding: 1.25rem;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .icon-btn {
+      background: var(--white);
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.15rem;
+      box-shadow: var(--shadow);
+      transition: background .15s;
+    }
+    .icon-btn:hover { background: #e8e8e8; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 1.25rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 480px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* current card */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .current-card {
+      padding: 1.75rem 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: .28rem 1rem;
+      border-radius: 99px;
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .07em;
+      margin-bottom: 1rem;
+    }
+    .badge-green { background: var(--green-light); color: #2e7d32; }
+    .badge-blue  { background: var(--blue-light);  color: #1565c0; }
+
+    .act-name {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 1.25rem;
+      letter-spacing: .02em;
+      line-height: 1.1;
+    }
+
+    .pict-box {
+      width: 200px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: .5rem;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .pict-box img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    /* red X overlay shown when activity is manually ended */
+    .ended-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.72);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .x-mark {
+      font-size: 6rem;
+      font-weight: 900;
+      color: #d32f2f;
+      line-height: 1;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+
+    /* full-screen backdrop for the "siguiente actividad" modal */
+    .next-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .next-card-big {
+      background: var(--blue-light);
+      border-radius: 24px;
+      padding: 2.5rem 3rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .85rem;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.28);
+      animation: pop-in .25s cubic-bezier(.34,1.56,.64,1) both;
+      cursor: pointer;
+    }
+
+    .next-pict-big {
+      width: 200px;
+      height: 200px;
+      background: var(--white);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .next-pict-big img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .next-name-big {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .start-hint {
+      font-size: .9rem;
+      font-weight: 700;
+      color: #1565c0;
+      letter-spacing: .03em;
+    }
+
+    @keyframes pop-in {
+      from { transform: scale(.82); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .arasaac-credit {
+      font-size: .62rem;
+      color: #bbb;
+      margin-bottom: 1.25rem;
+      letter-spacing: .04em;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 14px;
+      background: var(--green-light);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: .75rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 99px;
+      transition: width 1s linear;
+    }
+
+    .timer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .timer {
+      font-size: clamp(2.5rem, 7vw, 3.5rem);
+      font-weight: 900;
+      letter-spacing: .04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-pause {
+      background: #f0f0f0;
+      border: none;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.25rem;
+      transition: background .15s;
+    }
+    .btn-pause:hover { background: #e0e0e0; }
+
+    /* right column — card is vertically centered alongside the main card */
+    .right-col { display: flex; flex-direction: column; justify-content: center; }
+
+    .next-card {
+      padding: 0.75rem;
+      background: var(--blue-light);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .next-card .badge { margin-bottom: .5rem; }
+
+    .next-pict {
+      width: 90px;
+      height: 90px;
+      background: var(--white);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: .5rem;
+    }
+
+    .next-pict img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .next-name {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .no-next-msg {
+      color: var(--text-muted);
+      font-size: .78rem;
+      text-align: center;
+      padding: .35rem 0;
+    }
+
+    /* red "end activity" button */
+    .btn-end {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .35rem;
+      width: 100%;
+      margin-top: .85rem;
+      padding: .5rem .75rem;
+      background: #fff5f5;
+      border: 1.5px solid #ffcdd2;
+      border-radius: 10px;
+      color: #c62828;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-end:hover { background: #ffcdd2; border-color: #ef9a9a; }
+
+    .btn-next {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .35rem;
+      width: 100%;
+      margin-top: .5rem;
+      padding: .5rem .75rem;
+      background: var(--green-light);
+      border: 1.5px solid #a5d6a7;
+      border-radius: 10px;
+      color: #2e7d32;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-next:hover { background: #c8e6c9; border-color: var(--green); }
+
+    /* author avatar — top-right of the setup/menu screen */
+    #setup { position: relative; }
+
+    .avatar-stamp {
+      position: absolute;
+      top: 1.1rem;
+      right: 1.1rem;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      overflow: hidden;
+      opacity: 0.42;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+      pointer-events: none;
+    }
+
+    .avatar-stamp img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* dots row below the two cards */
+    .dots-row {
+      max-width: 960px;
+      margin: 1.25rem auto 0;
+    }
+
+    .dots-wrap {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #ddd;
+      transition: all .3s;
+    }
+    .dot.done    { background: #a5d6a7; }
+    .dot.current { background: var(--green); transform: scale(1.4); }
+
+    /* spinner */
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid #eee;
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* alert flash */
+    @keyframes flash {
+      0%,100% { background: var(--white); }
+      50%      { background: #fff9c4; }
+    }
+    .flashing { animation: flash .55s ease 3; }
+
+    /* completed */
+    .done-card {
+      padding: 3rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      text-align: center;
+    }
+    .done-card .done-emoji { font-size: 4rem; line-height: 1; }
+    .done-card h2 { font-size: 1.75rem; color: var(--green); }
+    .done-card p  { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<!-- ─── SETUP ────────────────────────────────────────────── -->
+<section id="setup">
+  <div class="avatar-stamp">
+    <img src="avatar.png" alt="José C Cabello de Alba">
+  </div>
+  <header class="setup-header">
+    <h1>Rutina de Actividades</h1>
+    <p>Añade las actividades y sus duraciones en minutos</p>
+  </header>
+
+  <div id="activity-list"></div>
+
+  <button id="btn-add">+ Añadir actividad</button>
+  <button id="btn-start">▶ Iniciar rutina</button>
+
+  <div class="days-section">
+    <div class="days-header">Rutinas guardadas por día</div>
+    <div class="days-row">
+      <div class="days-btns" id="days-btns"></div>
+      <button class="btn-save-day" id="btn-save-day">💾 Guardar</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─── MAIN ─────────────────────────────────────────────── -->
+<section id="main">
+  <div class="topbar">
+    <button class="icon-btn" id="btn-settings" title="Volver a configuración">⚙</button>
+    <button class="icon-btn" id="btn-fullscreen" title="Pantalla completa">⛶</button>
+  </div>
+
+  <div class="layout">
+    <!-- Current activity card -->
+    <div class="card current-card" id="current-card">
+      <span class="badge badge-green">ACTIVIDAD EN CURSO</span>
+      <div class="act-name" id="act-name">—</div>
+      <div class="pict-box" id="pict-current"><div class="spinner"></div></div>
+      <div class="arasaac-credit">ARASAAC</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:100%"></div>
+      </div>
+      <div class="timer-row">
+        <div class="timer" id="timer">00:00</div>
+        <button class="btn-pause" id="btn-pause" title="Pausar / Reanudar">⏸</button>
+      </div>
+      <button class="btn-end"  id="btn-end">✕ Actividad acabada</button>
+      <button class="btn-next" id="btn-next" style="display:none">▶ Siguiente actividad</button>
+    </div>
+
+    <!-- Right column: next activity only -->
+    <div class="right-col">
+      <div class="next-card" id="next-card">
+        <span class="badge badge-blue">SIGUIENTE ACTIVIDAD</span>
+        <div class="next-pict" id="pict-next"><div class="spinner"></div></div>
+        <div class="next-name" id="next-name">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress dots below both cards -->
+  <div class="dots-row">
+    <div class="dots-wrap" id="dots"></div>
+  </div>
+</section>
+
+<script>
+/* ================================================================
+   AudioManager
+   Generates soft notification tones via Web Audio API.
+   Tones are sine waves with short fade-in/out to avoid clicks.
+================================================================ */
+const AudioManager = (() => {
+  let ctx = null;
+
+  function ensure() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+  }
+
+  function tone(freq, delay, dur, vol = 0.14) {
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const t = ctx.currentTime + delay;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.06);
+    g.gain.setValueAtTime(vol, t + dur - 0.08);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    osc.start(t);
+    osc.stop(t + dur);
+  }
+
+  function init() {
+    ensure();
+  }
+
+  function play(type) {
+    try {
+      ensure();
+      // 5 min: single soft C5
+      if (type === '5min') {
+        tone(523, 0, 0.5);
+      }
+      // 3 min: C5 + E5
+      else if (type === '3min') {
+        tone(523, 0,   0.32);
+        tone(659, 0.4, 0.32);
+      }
+      // 1 min: C5 + E5 + G5 (gentle chord arpeggio)
+      else if (type === '1min') {
+        tone(523, 0,   0.28);
+        tone(659, 0.32, 0.28);
+        tone(784, 0.64, 0.42);
+      }
+      // End: descending G5 > E5 > C5
+      else if (type === 'end') {
+        tone(784, 0,    0.32);
+        tone(659, 0.38, 0.32);
+        tone(523, 0.76, 0.55);
+      }
+    } catch (e) { /* fail silently */ }
+  }
+
+  return { init, play };
+})();
+
+/* ================================================================
+   PictogramLoader
+   Fetches pictogram URLs from the ARASAAC public API and caches
+   results so each keyword is only requested once per session.
+================================================================ */
+const PictogramLoader = (() => {
+  const cache = Object.create(null);
+  const API   = 'https://api.arasaac.org/v1/pictograms';
+  const IMG   = 'https://static.arasaac.org/pictograms';
+
+  async function load(keyword) {
+    const key = keyword.toLowerCase().trim();
+    if (key in cache) return cache[key];
+
+    try {
+      const res  = await fetch(`${API}/es/search/${encodeURIComponent(key)}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const list = await res.json();
+      if (Array.isArray(list) && list.length) {
+        const id = list[0]._id;
+        return (cache[key] = `${IMG}/${id}/${id}_500.png`);
+      }
+    } catch { /* not found or offline */ }
+
+    return (cache[key] = null);
+  }
+
+  function preload(keywords) {
+    return Promise.all(keywords.map(k => load(k)));
+  }
+
+  return { load, preload };
+})();
+
+/* ================================================================
+   TimerManager
+   Manages a single countdown timer.
+   - setup(duration, callbacks): configure duration (seconds) and
+     callbacks { onTick(remaining, total), onAlert(type), onEnd() }
+   - play() / pause() / stop() / toggle(): control playback
+   Fires alerts at 300 s (5 min), 180 s (3 min), 60 s (1 min)
+   remaining, but only when those thresholds are less than the
+   total duration.
+================================================================ */
+const TimerManager = (() => {
+  const ALERT_MAP = { 300: '5min', 180: '3min', 60: '1min' };
+
+  let intervalId = null;
+  let rem = 0, tot = 0;
+  let running = false;
+  let fired   = {};
+  let cbs     = {};
+
+  function tick() {
+    rem = Math.max(0, rem - 1);
+
+    const alertType = ALERT_MAP[rem];
+    if (alertType && !fired[rem] && rem < tot) {
+      fired[rem] = true;
+      cbs.onAlert?.(alertType);
+    }
+
+    cbs.onTick?.(rem, tot);
+
+    if (rem <= 0) { _stop(); cbs.onEnd?.(); }
+  }
+
+  function _stop() {
+    running = false;
+    clearInterval(intervalId);
+    intervalId = null;
+  }
+
+  function setup(duration, callbacks) {
+    _stop();
+    rem = tot = duration;
+    fired = {};
+    cbs   = callbacks || {};
+    cbs.onTick?.(rem, tot);
+  }
+
+  function play() {
+    if (running || rem <= 0) return;
+    running    = true;
+    intervalId = setInterval(tick, 1000);
+  }
+
+  function pause() {
+    _stop();
+  }
+
+  function stop() {
+    _stop();
+    rem = 0;
+  }
+
+  function toggle() {
+    running ? pause() : play();
+    return running;
+  }
+
+  function isRunning() { return running; }
+
+  return { setup, play, pause, stop, toggle, isRunning };
+})();
+
+/* ================================================================
+   ActivityManager
+   Stores the ordered list of activities and tracks the current
+   index. Duration is stored in seconds internally.
+================================================================ */
+const ActivityManager = (() => {
+  let list = [];
+  let idx  = 0;
+
+  function init(raw) {
+    list = raw.map((a, i) => ({
+      id:           i,
+      name:         a.name,
+      duration:     Math.max(1, a.duration | 0) * 60,
+      pictogramUrl: undefined,
+    }));
+    idx = 0;
+  }
+
+  return {
+    init,
+    getCurrent: () => list[idx]     ?? null,
+    getNext:    () => list[idx + 1] ?? null,
+    advance() { if (idx < list.length - 1) { idx++; return true; } return false; },
+    getAll:     () => list,
+    getIndex:   () => idx,
+  };
+})();
+
+/* ================================================================
+   DOM utilities
+================================================================ */
+const $ = id => document.getElementById(id);
+
+function fmt(s) {
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+
+function setImg(container, url, alt) {
+  if (!url) {
+    container.innerHTML = '<span style="font-size:2.8rem;opacity:.4">🖼️</span>';
+    return;
+  }
+  const img = new Image();
+  img.alt = alt;
+  img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+  img.onload  = () => { container.innerHTML = ''; container.appendChild(img); };
+  img.onerror = () => { container.innerHTML = '<span style="font-size:2.8rem;opacity:.4">🖼️</span>'; };
+  img.src = url;
+}
+
+/* ================================================================
+   Setup screen helpers
+================================================================ */
+function createRow(name = '', duration = 10) {
+  const row = document.createElement('div');
+  row.className = 'activity-row';
+  row.setAttribute('draggable', 'true');
+  row.innerHTML = `
+    <span class="handle" aria-hidden="true">⠿</span>
+    <input class="name" type="text" placeholder="Nombre de la actividad"
+           value="${name.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">
+    <div class="dur-wrap">
+      <input class="dur" type="number" min="1" max="180" value="${duration}">
+      <span>min</span>
+    </div>
+    <button class="btn-remove" title="Eliminar">✕</button>`;
+  row.querySelector('.btn-remove').addEventListener('click', () => row.remove());
+  return row;
+}
+
+function collectRows() {
+  return Array.from(document.querySelectorAll('#activity-list .activity-row'))
+    .map(r => ({
+      name:     r.querySelector('.name').value.trim(),
+      duration: parseInt(r.querySelector('.dur').value) || 10,
+    }))
+    .filter(a => a.name);
+}
+
+/* ================================================================
+   Main screen helpers
+================================================================ */
+function renderDots() {
+  const all = ActivityManager.getAll();
+  const cur = ActivityManager.getIndex();
+  const wrap = $('dots');
+  wrap.innerHTML = '';
+  all.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < cur ? ' done' : i === cur ? ' current' : '');
+    wrap.appendChild(d);
+  });
+}
+
+function updateNextCard() {
+  const next = ActivityManager.getNext();
+  const card = $('next-card');
+  if (!next) {
+    card.innerHTML = `
+      <span class="badge badge-blue">SIGUIENTE ACTIVIDAD</span>
+      <p class="no-next-msg">Esta es la última actividad</p>`;
+    return;
+  }
+  card.innerHTML = `
+    <span class="badge badge-blue">SIGUIENTE ACTIVIDAD</span>
+    <div class="next-pict" id="pict-next"><div class="spinner"></div></div>
+    <div class="next-name">${next.name.toUpperCase()}</div>`;
+  if (next.pictogramUrl) setImg($('pict-next'), next.pictogramUrl, next.name);
+}
+
+/* ================================================================
+   loadActivity
+   Sets up the UI and timer for the current activity.
+   Pictograms are loaded asynchronously; the timer starts
+   immediately without waiting for the network.
+   A generation counter prevents stale pictogram responses from
+   overwriting the UI after an activity has already advanced.
+================================================================ */
+let generation = 0;
+
+function showCompleted() {
+  $('current-card').innerHTML = `
+    <div class="done-card">
+      <span class="done-emoji">🎉</span>
+      <h2>¡Rutina completada!</h2>
+      <p>Todas las actividades han terminado.</p>
+    </div>`;
+  $('next-card').innerHTML = '';
+  renderDots();
+}
+
+function endCurrentActivity() {
+  TimerManager.stop();
+  AudioManager.play('end');
+
+  // Show red X overlay on the current pictogram
+  const overlay = document.createElement('div');
+  overlay.className = 'ended-overlay';
+  overlay.innerHTML = '<span class="x-mark">✕</span>';
+  $('pict-current').appendChild(overlay);
+
+  // Swap buttons: hide pause + end, show "siguiente"
+  const pauseBtn = $('btn-pause'), endBtn = $('btn-end'), nextBtn = $('btn-next');
+  if (pauseBtn) pauseBtn.style.display = 'none';
+  if (endBtn)   endBtn.style.display   = 'none';
+
+  const hasNext = !!ActivityManager.getNext();
+  if (hasNext && nextBtn) {
+    nextBtn.style.display = '';
+  } else if (!hasNext) {
+    showCompleted();
+  }
+}
+
+function loadActivity() {
+  const myGen   = ++generation;
+  const current = ActivityManager.getCurrent();
+  if (!current) return;
+
+  // Reset controls hidden by endCurrentActivity
+  const pauseBtn = $('btn-pause'), endBtn = $('btn-end'), nextBtn = $('btn-next');
+  if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = '⏸'; }
+  if (endBtn)   endBtn.style.display   = '';
+  if (nextBtn)  nextBtn.style.display  = 'none';
+
+  // Update name and reset pictogram immediately (also clears any X overlay)
+  $('act-name').textContent = current.name.toUpperCase();
+  $('pict-current').innerHTML = '<div class="spinner"></div>';
+
+  renderDots();
+  updateNextCard();
+
+  // Configure and start timer right away
+  TimerManager.setup(current.duration, {
+    onTick(r, t) {
+      $('timer').textContent = fmt(r);
+      $('progress-fill').style.width = (t > 0 ? (r / t) * 100 : 0) + '%';
+    },
+    onAlert(type) {
+      AudioManager.play(type);
+      const card = $('current-card');
+      card.classList.remove('flashing');
+      void card.offsetWidth;
+      card.classList.add('flashing');
+    },
+    onEnd() { endCurrentActivity(); },
+  });
+
+  $('btn-pause').textContent = '⏸';
+
+  // Load current pictogram in background
+  PictogramLoader.load(current.name).then(url => {
+    if (generation !== myGen) return; // activity has already advanced
+    current.pictogramUrl = url;
+    setImg($('pict-current'), url, current.name);
+  });
+
+  // Pre-fetch next pictogram so it's ready when the activity advances
+  const next = ActivityManager.getNext();
+  if (next) {
+    PictogramLoader.load(next.name).then(url => {
+      next.pictogramUrl = url;
+      const el = $('pict-next');
+      if (el) setImg(el, url, next.name);
+    });
+  }
+}
+
+/* ================================================================
+   Screen switching
+================================================================ */
+function showSetup() {
+  $('setup').style.display = 'block';
+  $('main').style.display  = 'none';
+}
+
+function showMain() {
+  $('setup').style.display = 'none';
+  $('main').style.display  = 'block';
+}
+
+/* ================================================================
+   Drag-and-drop reordering for setup rows
+================================================================ */
+function setupDragAndDrop() {
+  const list = $('activity-list');
+  let src = null;
+
+  list.addEventListener('dragstart', e => {
+    src = e.target.closest('.activity-row');
+    if (!src) return;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => src.classList.add('dragging'), 0);
+  });
+
+  list.addEventListener('dragend', () => {
+    list.querySelectorAll('.activity-row').forEach(r => {
+      r.classList.remove('dragging', 'drag-over');
+    });
+    src = null;
+  });
+
+  list.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.activity-row');
+    if (!target || target === src) return;
+    list.querySelectorAll('.activity-row').forEach(r => r.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+  });
+
+  list.addEventListener('dragleave', e => {
+    const target = e.target.closest('.activity-row');
+    if (target) target.classList.remove('drag-over');
+  });
+
+  list.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.activity-row');
+    if (!target || !src || target === src) return;
+    const rect = target.getBoundingClientRect();
+    if (e.clientY < rect.top + rect.height / 2) {
+      list.insertBefore(src, target);
+    } else {
+      list.insertBefore(src, target.nextSibling);
+    }
+    list.querySelectorAll('.activity-row').forEach(r => r.classList.remove('drag-over'));
+  });
+}
+
+/* ================================================================
+   Day-based routine save / load  (persisted in localStorage)
+================================================================ */
+const WEEK_DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+const DAY_ABBR  = { 'Lunes':'Lun', 'Martes':'Mar', 'Miércoles':'Mié', 'Jueves':'Jue', 'Viernes':'Vie' };
+let selectedDay = null;
+
+function renderDaysBtns() {
+  const wrap = $('days-btns');
+  wrap.innerHTML = '';
+  WEEK_DAYS.forEach(day => {
+    const btn = document.createElement('button');
+    const hasSaved = !!localStorage.getItem('routine_' + day);
+    btn.className = 'day-btn' +
+      (hasSaved     ? ' has-data' : '') +
+      (selectedDay === day ? ' selected'  : '');
+    btn.textContent = DAY_ABBR[day];
+    btn.title = day + (hasSaved ? ' (rutina guardada)' : '');
+    btn.addEventListener('click', () => {
+      selectedDay = day;
+      const raw = localStorage.getItem('routine_' + day);
+      if (raw) {
+        const data = JSON.parse(raw);
+        $('activity-list').innerHTML = '';
+        data.forEach(a => $('activity-list').appendChild(createRow(a.name, a.duration)));
+      }
+      renderDaysBtns();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function saveCurrentRoutine() {
+  if (!selectedDay) {
+    const section = document.querySelector('.days-section');
+    section.style.outline = '2px solid #ef9a9a';
+    section.style.outlineOffset = '2px';
+    setTimeout(() => { section.style.outline = ''; section.style.outlineOffset = ''; }, 1000);
+    return;
+  }
+  const data = collectRows();
+  if (!data.length) return;
+  localStorage.setItem('routine_' + selectedDay, JSON.stringify(data));
+  renderDaysBtns();
+  const btn = $('btn-save-day');
+  btn.textContent = '✓ Guardado';
+  btn.style.cssText = 'background:#e8f5e9;border-color:#a5d6a7;color:#2e7d32';
+  setTimeout(() => { btn.textContent = '💾 Guardar'; btn.style.cssText = ''; }, 1600);
+}
+
+/* ================================================================
+   App bootstrap — default activities + event wiring
+================================================================ */
+(function init() {
+  const defaults = [
+    { name: 'Asamblea',           duration: 8  },
+    { name: 'Lectura',            duration: 15 },
+    { name: 'Trabajo individual', duration: 20 },
+    { name: 'Recreo',             duration: 20 },
+  ];
+  defaults.forEach(a => $('activity-list').appendChild(createRow(a.name, a.duration)));
+
+  setupDragAndDrop();
+  renderDaysBtns();
+
+  $('btn-save-day').addEventListener('click', saveCurrentRoutine);
+
+  $('btn-add').addEventListener('click', () => {
+    const row = createRow('', 10);
+    $('activity-list').appendChild(row);
+    row.querySelector('.name').focus();
+  });
+
+  $('btn-start').addEventListener('click', () => {
+    const data = collectRows();
+    if (!data.length) { alert('Añade al menos una actividad.'); return; }
+    AudioManager.init(); // create audio context on user gesture
+    ActivityManager.init(data);
+    // Kick off pictogram preload for all activities in background
+    PictogramLoader.preload(data.map(d => d.name));
+    showMain();
+    loadActivity();
+  });
+
+  $('btn-settings').addEventListener('click', () => {
+    TimerManager.stop();
+    showSetup();
+  });
+
+  (function setupFullscreen() {
+    const btn = $('btn-fullscreen');
+    const el  = document.documentElement;
+
+    function isFullscreen() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+
+    function updateIcon() {
+      btn.textContent = isFullscreen() ? '✕' : '⛶';
+      btn.title = isFullscreen() ? 'Salir de pantalla completa' : 'Pantalla completa';
+    }
+
+    btn.addEventListener('click', () => {
+      if (!isFullscreen()) {
+        (el.requestFullscreen?.() ?? el.webkitRequestFullscreen?.())?.catch(() => {});
+      } else {
+        (document.exitFullscreen?.() ?? document.webkitExitFullscreen?.())?.catch(() => {});
+      }
+    });
+
+    document.addEventListener('fullscreenchange',       updateIcon);
+    document.addEventListener('webkitfullscreenchange', updateIcon);
+  })();
+
+  $('btn-pause').addEventListener('click', () => {
+    const nowRunning = TimerManager.toggle();
+    $('btn-pause').textContent = nowRunning ? '⏸' : '▶';
+  });
+
+  $('btn-end').addEventListener('click', endCurrentActivity);
+
+  $('btn-next').addEventListener('click', () => {
+    if (ActivityManager.advance()) {
+      loadActivity();
+      TimerManager.play();
+    } else {
+      showCompleted();
+    }
+  });
+})();
+</script>
+</body>
+</html>
