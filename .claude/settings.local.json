@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where python *)",
+      "Bash(where python3 *)",
+      "Bash(where npx *)",
+      "Bash(mkdir -p \"C:/Users/yosy6/Desktop/rutinapp/.claude\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where node *)",
+      "PowerShell(Get-Command node, npx, python3 -ErrorAction SilentlyContinue)",
+      "PowerShell(gh --version 2>$null)",
+      "PowerShell(Invoke-RestMethod \"https://api.github.com/repos/ysk90/rutinapp/contents\")",
+      "PowerShell(\\(Invoke-RestMethod \"https://api.github.com/repos/ysk90/rutinapp/contents\"\\) | ForEach-Object { $_.name })",
+      "PowerShell(Invoke-RestMethod \"https://api.github.com/repos/ysk90/rutinapp/pages\" 2>$null)",
+      "PowerShell(\\(Invoke-RestMethod \"https://api.github.com/repos/ysk90/rutinapp\"\\).private)"
+    ]
+  }
+}

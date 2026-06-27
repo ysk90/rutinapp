@@ -180,14 +180,28 @@
       margin-bottom: .6rem;
     }
 
-    .days-row {
+    .days-period-row {
       display: flex;
       align-items: center;
       gap: .45rem;
-      flex-wrap: wrap;
+      margin-bottom: .4rem;
+    }
+
+    .period-label {
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      width: 5.2rem;
+      flex-shrink: 0;
     }
 
     .days-btns { display: flex; gap: .4rem; flex-wrap: wrap; flex: 1; }
+
+    .days-save-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: .35rem;
+    }
 
     .day-btn {
       padding: .35rem .65rem;
@@ -628,8 +642,15 @@
 
   <div class="days-section">
     <div class="days-header">Rutinas guardadas por día</div>
-    <div class="days-row">
-      <div class="days-btns" id="days-btns"></div>
+    <div class="days-period-row">
+      <span class="period-label">🌅 Mañana</span>
+      <div class="days-btns" id="days-btns-mañana"></div>
+    </div>
+    <div class="days-period-row">
+      <span class="period-label">🌙 Tarde</span>
+      <div class="days-btns" id="days-btns-tarde"></div>
+    </div>
+    <div class="days-save-row">
       <button class="btn-save-day" id="btn-save-day">💾 Guardar</button>
     </div>
   </div>
@@ -650,7 +671,7 @@
       <div class="pict-box" id="pict-current"><div class="spinner"></div></div>
       <div class="arasaac-credit">ARASAAC</div>
       <div class="progress-track">
-        <div class="progress-fill" id="progress-fill" style="width:100%"></div>
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
       </div>
       <div class="timer-row">
         <div class="timer" id="timer">00:00</div>
@@ -1023,7 +1044,7 @@ function loadActivity() {
   TimerManager.setup(current.duration, {
     onTick(r, t) {
       $('timer').textContent = fmt(r);
-      $('progress-fill').style.width = (t > 0 ? (r / t) * 100 : 0) + '%';
+      $('progress-fill').style.width = (t > 0 ? ((t - r) / t) * 100 : 100) + '%';
     },
     onAlert(type) {
       AudioManager.play(type);
@@ -1121,35 +1142,39 @@ function setupDragAndDrop() {
 ================================================================ */
 const WEEK_DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const DAY_ABBR  = { 'Lunes':'Lun', 'Martes':'Mar', 'Miércoles':'Mié', 'Jueves':'Jue', 'Viernes':'Vie' };
-let selectedDay = null;
+const PERIODS   = ['mañana', 'tarde'];
+let selectedSlot = null; // e.g. 'Lunes_mañana'
 
 function renderDaysBtns() {
-  const wrap = $('days-btns');
-  wrap.innerHTML = '';
-  WEEK_DAYS.forEach(day => {
-    const btn = document.createElement('button');
-    const hasSaved = !!localStorage.getItem('routine_' + day);
-    btn.className = 'day-btn' +
-      (hasSaved     ? ' has-data' : '') +
-      (selectedDay === day ? ' selected'  : '');
-    btn.textContent = DAY_ABBR[day];
-    btn.title = day + (hasSaved ? ' (rutina guardada)' : '');
-    btn.addEventListener('click', () => {
-      selectedDay = day;
-      const raw = localStorage.getItem('routine_' + day);
-      if (raw) {
-        const data = JSON.parse(raw);
-        $('activity-list').innerHTML = '';
-        data.forEach(a => $('activity-list').appendChild(createRow(a.name, a.duration)));
-      }
-      renderDaysBtns();
+  PERIODS.forEach(period => {
+    const wrap = $('days-btns-' + period);
+    wrap.innerHTML = '';
+    WEEK_DAYS.forEach(day => {
+      const slot = day + '_' + period;
+      const btn = document.createElement('button');
+      const hasSaved = !!localStorage.getItem('routine_' + slot);
+      btn.className = 'day-btn' +
+        (hasSaved              ? ' has-data' : '') +
+        (selectedSlot === slot ? ' selected'  : '');
+      btn.textContent = DAY_ABBR[day];
+      btn.title = day + ' ' + period + (hasSaved ? ' (rutina guardada)' : '');
+      btn.addEventListener('click', () => {
+        selectedSlot = slot;
+        const raw = localStorage.getItem('routine_' + slot);
+        if (raw) {
+          const data = JSON.parse(raw);
+          $('activity-list').innerHTML = '';
+          data.forEach(a => $('activity-list').appendChild(createRow(a.name, a.duration)));
+        }
+        renderDaysBtns();
+      });
+      wrap.appendChild(btn);
     });
-    wrap.appendChild(btn);
   });
 }
 
 function saveCurrentRoutine() {
-  if (!selectedDay) {
+  if (!selectedSlot) {
     const section = document.querySelector('.days-section');
     section.style.outline = '2px solid #ef9a9a';
     section.style.outlineOffset = '2px';
@@ -1158,7 +1183,7 @@ function saveCurrentRoutine() {
   }
   const data = collectRows();
   if (!data.length) return;
-  localStorage.setItem('routine_' + selectedDay, JSON.stringify(data));
+  localStorage.setItem('routine_' + selectedSlot, JSON.stringify(data));
   renderDaysBtns();
   const btn = $('btn-save-day');
   btn.textContent = '✓ Guardado';
@@ -1170,14 +1195,6 @@ function saveCurrentRoutine() {
    App bootstrap — default activities + event wiring
 ================================================================ */
 (function init() {
-  const defaults = [
-    { name: 'Asamblea',           duration: 8  },
-    { name: 'Lectura',            duration: 15 },
-    { name: 'Trabajo individual', duration: 20 },
-    { name: 'Recreo',             duration: 20 },
-  ];
-  defaults.forEach(a => $('activity-list').appendChild(createRow(a.name, a.duration)));
-
   setupDragAndDrop();
   renderDaysBtns();
 
