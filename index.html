@@ -1025,25 +1025,80 @@ function showCompleted() {
   renderDots();
 }
 
+function launchCelebration(onDone) {
+  const overlay    = $('celebration');
+  const canvas     = $('confetti-canvas');
+  const ctx        = canvas.getContext('2d');
+  const balloonsEl = $('cel-balloons');
+
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  balloonsEl.innerHTML = '';
+  ['🎈','🎈','🎉','🎈','🎊','🎈','🎈','🎉'].forEach((e, i) => {
+    const b = document.createElement('span');
+    b.className = 'cel-balloon';
+    b.textContent = e;
+    b.style.left         = (5 + i * 13) + '%';
+    b.style.animationDelay = (i * 0.12) + 's';
+    balloonsEl.appendChild(b);
+  });
+
+  const COLORS = ['#f44336','#e91e63','#9c27b0','#2196f3','#4caf50','#ffeb3b','#ff9800','#00bcd4'];
+  const particles = Array.from({length: 130}, () => ({
+    x:     Math.random() * canvas.width,
+    y:     Math.random() * canvas.height - canvas.height,
+    w:     7 + Math.random() * 9,
+    h:     4 + Math.random() * 6,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    speed: 2.5 + Math.random() * 4,
+    angle: Math.random() * Math.PI * 2,
+    spin:  (Math.random() - .5) * .18,
+    drift: (Math.random() - .5) * 1.5,
+  }));
+
+  overlay.style.display = 'flex';
+  let rafId;
+  const start = Date.now();
+
+  function animate() {
+    if (Date.now() - start >= 2600) {
+      cancelAnimationFrame(rafId);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      overlay.style.display = 'none';
+      onDone();
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.y += p.speed; p.x += p.drift; p.angle += p.spin;
+      if (p.y > canvas.height) { p.y = -p.h; p.x = Math.random() * canvas.width; }
+      ctx.save();
+      ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    rafId = requestAnimationFrame(animate);
+  }
+
+  rafId = requestAnimationFrame(animate);
+
+  overlay.onclick = () => {
+    cancelAnimationFrame(rafId);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    overlay.style.display = 'none';
+    onDone();
+  };
+}
+
 function endCurrentActivity() {
   TimerManager.stop();
   AudioManager.play('end');
-
-  // Show red X overlay on the current pictogram
-  const overlay = document.createElement('div');
-  overlay.className = 'ended-overlay';
-  overlay.innerHTML = '<span class="x-mark">✕</span>';
-  $('pict-current').appendChild(overlay);
-
-  // Swap buttons: hide pause + end, show "siguiente"
-  const pauseBtn = $('btn-pause'), endBtn = $('btn-end'), nextBtn = $('btn-next');
-  if (pauseBtn) pauseBtn.style.display = 'none';
-  if (endBtn)   endBtn.style.display   = 'none';
-
-  const hasNext = !!ActivityManager.getNext();
-  if (hasNext && nextBtn) {
-    nextBtn.style.display = '';
-  } else if (!hasNext) {
+  if (ActivityManager.advance()) {
+    launchCelebration(() => loadActivity());
+  } else {
     showCompleted();
   }
 }
@@ -1282,81 +1337,6 @@ function saveCurrentRoutine() {
 
   $('btn-end').addEventListener('click', endCurrentActivity);
 
-  function launchCelebration(onDone) {
-    const overlay  = $('celebration');
-    const canvas   = $('confetti-canvas');
-    const ctx      = canvas.getContext('2d');
-    const balloonsEl = $('cel-balloons');
-
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    balloonsEl.innerHTML = '';
-    ['🎈','🎈','🎉','🎈','🎊','🎈','🎈','🎉'].forEach((e, i) => {
-      const b = document.createElement('span');
-      b.className = 'cel-balloon';
-      b.textContent = e;
-      b.style.left         = (5 + i * 13) + '%';
-      b.style.animationDelay = (i * 0.12) + 's';
-      balloonsEl.appendChild(b);
-    });
-
-    const COLORS = ['#f44336','#e91e63','#9c27b0','#2196f3','#4caf50','#ffeb3b','#ff9800','#00bcd4'];
-    const particles = Array.from({length: 130}, () => ({
-      x:     Math.random() * canvas.width,
-      y:     Math.random() * canvas.height - canvas.height,
-      w:     7 + Math.random() * 9,
-      h:     4 + Math.random() * 6,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      speed: 2.5 + Math.random() * 4,
-      angle: Math.random() * Math.PI * 2,
-      spin:  (Math.random() - .5) * .18,
-      drift: (Math.random() - .5) * 1.5,
-    }));
-
-    overlay.style.display = 'flex';
-    let rafId;
-    const start = Date.now();
-
-    function animate() {
-      if (Date.now() - start >= 2600) {
-        cancelAnimationFrame(rafId);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        overlay.style.display = 'none';
-        onDone();
-        return;
-      }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => {
-        p.y += p.speed; p.x += p.drift; p.angle += p.spin;
-        if (p.y > canvas.height) { p.y = -p.h; p.x = Math.random() * canvas.width; }
-        ctx.save();
-        ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
-        ctx.rotate(p.angle);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        ctx.restore();
-      });
-      rafId = requestAnimationFrame(animate);
-    }
-
-    rafId = requestAnimationFrame(animate);
-
-    overlay.onclick = () => {
-      cancelAnimationFrame(rafId);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      overlay.style.display = 'none';
-      onDone();
-    };
-  }
-
-  $('btn-next').addEventListener('click', () => {
-    if (ActivityManager.advance()) {
-      launchCelebration(() => loadActivity());
-    } else {
-      showCompleted();
-    }
-  });
 })();
 </script>
 
